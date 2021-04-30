@@ -16,14 +16,13 @@ namespace Ayy
             {
                 for(int x = 0; x < Width; x++)
                 {
-                    TestBuffer[x, y] = new DrawPoint();
-                    TestBuffer[x, y].DisplayChar = '#';
-                    TestBuffer[x, y].DisplayColor = ConsoleColor.White;
+                    DisplayBuffer[x, y].DisplayChar = '#';
+                    DisplayBuffer[x, y].DisplayColor = ConsoleColor.White;
                 }
             }
-            WhiteSreen = DrawPoint.Copy(TestBuffer);
+            WhiteSreen = DrawPoint.Copy(DisplayBuffer);
            
-            Draw ConsoleDrawer = new Draw(10, Width, Height, TestBuffer, "Yeeetumus");
+            Draw ConsoleDrawer = new Draw(10, Width, Height, DisplayBuffer, "Yeeetumus");
             ConsoleDrawer.Start();
             Random Ran = new Random();
             while (true)
@@ -32,14 +31,14 @@ namespace Ayy
                 {
                     int x = Ran.Next(0, Width);
                     int y = Ran.Next(0, Height);
-                    if (TestBuffer[x, y].DisplayColor == ConsoleColor.Black)
+                    if (DisplayBuffer[x, y].DisplayColor == ConsoleColor.Black)
                     { i--; continue; }
-                    TestBuffer[x, y].DisplayColor = ConsoleColor.Black;
+                    DisplayBuffer[x, y].DisplayColor = ConsoleColor.Black;
                     
                 }
-                ConsoleDrawer.UpdateBuffer(TestBuffer);
+                ConsoleDrawer.UpdateBuffer(DisplayBuffer);
                 Thread.Sleep(1000);
-                TestBuffer = DrawPoint.Copy(WhiteSreen);
+                DisplayBuffer = DrawPoint.Copy(WhiteSreen);
             }
         }
 
@@ -66,7 +65,7 @@ namespace Ayy
             return A;
         }
 
-        public DrawPoint[,] InitPoint(int width, int height)
+        public static DrawPoint[,] InitPoint(int width, int height)
         {
             DrawPoint[,] Out = new DrawPoint[width, height];
             for (int y = 0; y < height; y++)
