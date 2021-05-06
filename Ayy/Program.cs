@@ -94,6 +94,8 @@ namespace Ayy
             this.Buffer = DrawPoint.CopyTo(StartBuffer, new DrawPoint[width, height]);
             if (Console.BufferHeight < Height) { Console.BufferHeight = Height; }
             if (Console.BufferWidth < Width) { Console.BufferWidth = Width; }
+            if(Console.WindowHeight < Height) { Console.WindowHeight = Height; }
+            if (Console.WindowWidth < Width) { Console.WindowWidth = Width; }
             Console.Title = Title;
             Console.WindowHeight = Height;
             Console.WindowWidth = Width;
