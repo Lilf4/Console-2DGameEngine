@@ -98,10 +98,12 @@ namespace Ayy
             this.Width = width;
             this.Height = height;
             this.TimeBetweenUpdates = TimeBetweenUpdates;
-            this.CurrDisplay = StartBuffer;
-            this.Buffer = StartBuffer;
+            this.CurrDisplay = DrawPoint.Copy(StartBuffer);
+            this.Buffer = DrawPoint.Copy(StartBuffer);
             if (Console.BufferHeight < Height) { Console.BufferHeight = Height; }
             if (Console.BufferWidth < Width) { Console.BufferWidth = Width; }
+            if(Console.WindowHeight < Height) { Console.WindowHeight = Height; }
+            if (Console.WindowWidth < Width) { Console.WindowWidth = Width; }
             Console.Title = Title;
         }
         /// <summary>
