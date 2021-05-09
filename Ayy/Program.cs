@@ -1,154 +1,167 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace Ayy
 {
     class Program
     {
-        public static int Width = 100;
-        public static int Height = 40;
-        static void Main(string[] args)
+        public static int Width = 200;
+        public static int Height = 100;
+        static GameSystem Game = new GameSystem(Width, Height, "Yeet");
+        public static Vector2 MoveVel = Vector2.Zero;
+		static Object Player = new Object("PLAYER", new Vector2(5, 5), new Vector2(0, 0), ConsoleColor.DarkBlue);
+		static void Main(string[] args)
         {
-            DrawPoint[,] DisplayBuffer = DrawPoint.InitPoint(Width, Height);
-            DisplayBuffer = DrawPoint.Const('#', ConsoleColor.White, DisplayBuffer);
-            Draw ConsoleDrawer = new Draw(10, Width, Height, DisplayBuffer, "Yeeetumus");
-            ConsoleDrawer.Start();
-            Thread.Sleep(1000);
-            DisplayBuffer = DrawPoint.Const('#', ConsoleColor.DarkGreen, DisplayBuffer);
-            ConsoleDrawer.UpdateBuffer(DisplayBuffer);
-        }
+            Game.ConsoleDrawer.LTRTTB_TTBLTR = true;
+            Game.AddObject(new Object("GROUND", new Vector2(Width + 1, 10), new Vector2(0, -MathF.Round(Height / 2)), ConsoleColor.Gray));
+			Thread DEBUG = new Thread(new ThreadStart(DebugS));
+			//DEBUG.Start();
+            Game.AddObject(Player);
+            Game.RenderScreen();
+            float TimeBetween = DateTime.Now.Millisecond;
+            Vector2 MoveVectors = new Vector2(1, 1);
+			Vector2 MoveSpeed = new Vector2(5, 5);
+			Vector2 Gravity = new Vector2(0, -5.7f);
+			bool KeyWasPressed;
 
-        
-    }
-    public class DrawPoint
-    {
-        public char DisplayChar = ' ';
-        public ConsoleColor DisplayColor = ConsoleColor.White;
-
-        public static DrawPoint[,] CopyTo(DrawPoint[,] ObjToCopy, DrawPoint[,] ObjToTransferTo)
-        {
-            for (int y = 0; y < ObjToCopy.GetLength(1); y++)
+			//while (true)
             {
-                for (int x = 0; x < ObjToCopy.GetLength(0); x++)
+                TimeBetween = (DateTime.Now.Millisecond - TimeBetween) / 1000;
+                if(TimeBetween < 0) { TimeBetween = 0; }
+					Player.RePosition(Player.GetPos() + (MoveVel * (MoveVectors * MoveSpeed * TimeBetween)));
+				KeyWasPressed = false;
+				if (Keyboard.IsKeyPressed(ConsoleKey.A))
+				{
+					MoveVel += Vector2.Left * 3;
+					KeyWasPressed = true;
+				}
+				if (Keyboard.IsKeyPressed(ConsoleKey.D))
+				{
+					MoveVel += Vector2.Right * 3;
+					KeyWasPressed = true;
+				}
+                if (!KeyWasPressed)
                 {
-                    if (ObjToTransferTo[x, y] == null) { ObjToTransferTo[x, y] = new DrawPoint(); }
-                    ObjToTransferTo[x, y].DisplayChar = ObjToCopy[x, y].DisplayChar;
-                    ObjToTransferTo[x, y].DisplayColor = ObjToCopy[x, y].DisplayColor;
+					MoveVel.x = 0;
                 }
-            }
-            return ObjToTransferTo;
-        }
 
-        public static DrawPoint[,] InitPoint(int width, int height)
-        {
-            DrawPoint[,] Out = new DrawPoint[width, height];
-            for (int y = 0; y < height; y++)
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    Out[x, y] = new DrawPoint();
-                }
-            }
-            return Out;
-        }
 
-        public static DrawPoint[,] Const(char Char, ConsoleColor Color, DrawPoint[,] Buffer)
-        {
-            for(int y = 0; y < Buffer.GetLength(1); y++) 
-            {
-                for(int x = 0; x < Buffer.GetLength(0); x++)
-                {
-                    if (Buffer[x, y] == null) { Buffer[x, y] = new DrawPoint(); }
-                    Buffer[x, y].DisplayChar = Char;
-                    Buffer[x, y].DisplayColor = Color;
-                }
-            }
-            return Buffer;
-        }
-    }
 
-    class Draw
-    {
-        public bool ForceDraw;
-        int Width;
-        int Height;
-        int TimeBetweenUpdates;
-        bool StopThreads;
-        DrawPoint[,] CurrDisplay;
-        DrawPoint[,] Buffer;
-        /// <summary>
-        /// Initiates a draw object
-        /// </summary>
-        /// <param name="TimeBetweenUpdates">Time in miliseconds between each frame update</param>
-        /// <param name="width">Width of display</param>
-        /// <param name="height">Height of display</param>
-        /// <param name="StartBuffer">First buffer screen to display</param>
-        /// <param name="Title">Title of console program</param>
-        public Draw(int TimeBetweenUpdates, int width, int height, DrawPoint[,] StartBuffer, string Title)
-        {
-            this.Width = width;
-            this.Height = height;
-            this.TimeBetweenUpdates = TimeBetweenUpdates;
-            this.CurrDisplay = DrawPoint.Const(' ', ConsoleColor.White, new DrawPoint[width, height]);
-            this.Buffer = DrawPoint.CopyTo(StartBuffer, new DrawPoint[width, height]);
-            if (Console.BufferHeight < Height) { Console.BufferHeight = Height; }
-            if (Console.BufferWidth < Width) { Console.BufferWidth = Width; }
-            if(Console.WindowHeight < Height) { Console.WindowHeight = Height; }
-            if (Console.WindowWidth < Width) { Console.WindowWidth = Width; }
-            Console.Title = Title;
-            Console.WindowHeight = Height;
-            Console.WindowWidth = Width;
-        }
-        /// <summary>
-        /// Updates the display buffer
-        /// </summary>
-        /// <param name="Buffer">stuff to display on screen</param>
-        public void UpdateBuffer (DrawPoint[,] Buffer)
-        {
-            this.Buffer = Buffer;
-        }
-
-        public void Start()
-        {
-            StopThreads = false;
-            Thread BeginDraw = new Thread(new ThreadStart(DrawLoop));
-            ForceDraw = true;
-            BeginDraw.Start();
-        }
-
-        void DrawLoop()
-        {
-            StopThreads = false;
-            while (!StopThreads)
-            {
-                DrawScreen();
-                Thread.Sleep(TimeBetweenUpdates);
-            }
-        }
-
-        public void Stop()
-        {
-            StopThreads = true;
-        }
-
-        void DrawScreen ()
-        {
-            for (int y = 0; y < Height; y++)
-            {
-                for (int x = 0; x < Width; x++)
-                {
-                    if ((Buffer[x, y].DisplayChar != CurrDisplay[x, y].DisplayChar) || (Buffer[x, y].DisplayColor != CurrDisplay[x, y].DisplayColor) || ForceDraw)
+				MoveVel += Gravity * TimeBetween;
+				foreach (Object a in Player.CollidingObjects)
+				{
+					if(a.NAME == "GROUND")
                     {
-                        Console.SetCursorPosition(x, y);
-                        Console.ForegroundColor = Buffer[x, y].DisplayColor;
-                        Console.Write(Buffer[x, y].DisplayChar);
-                        
-                    };
-                }
+						if (Keyboard.IsKeyPressed(ConsoleKey.W))
+						{
+							MoveVel.y += 10;
+						}
+						else
+						{
+							MoveVel.y = 0;
+						}
+					}
+				}
+
+				MoveVel = Vector2.Clamp(MoveVel, -3f, 3f, -5f, 5f);
+
+				TimeBetween = DateTime.Now.Millisecond;
+                Game.RenderScreen();
             }
-            ForceDraw = false;
-            CurrDisplay = DrawPoint.CopyTo(Buffer, CurrDisplay);
         }
-    }
+		static float lerp(float v0, float v1, float t)
+		{
+			return v0 + t * (v1 - v0);
+		}
+
+		static void DebugS()
+        {
+            while (true)
+            {
+				Debug.WriteLine(Game.Camera.GetPos());
+				Debug.WriteLine(Player.GetPos());
+				Thread.Sleep(2000);
+			}
+        }
+	}
+	public static class Keyboard
+	{
+		[DllImport("user32.dll", SetLastError = true)]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		static extern bool GetKeyboardState(byte[] lpKeyState);
+
+		public static int GetKeyState()
+		{
+
+
+			byte[] keys = new byte[256];
+
+			//Get pressed keys
+			if (!GetKeyboardState(keys))
+			{
+				int err = Marshal.GetLastWin32Error();
+				throw new Win32Exception(err);
+			}
+
+			for (int i = 0; i < 256; i++)
+			{
+
+				byte key = keys[i];
+
+				//Logical 'and' so we can drop the low-order bit for toggled keys, else that key will appear with the value 1!
+				if ((key & 0x80) != 0)
+				{
+
+					//This is just for a short demo, you may want this to return
+					//multiple keys!
+					return (int)key;
+				}
+			}
+			return -1;
+		}
+
+		[DllImport("user32.dll")]
+		static extern short GetKeyState(ConsoleKey nVirtKey);
+
+		public static bool IsKeyPressed(ConsoleKey testKey)
+		{
+			bool keyPressed = false;
+			short result = GetKeyState(testKey);
+
+			switch (result)
+			{
+				case 0:
+					// Not pressed and not toggled on.
+					keyPressed = false;
+					break;
+
+				case 1:
+					// Not pressed, but toggled on
+					keyPressed = false;
+					break;
+
+				default:
+					// Pressed (and may be toggled on)
+					keyPressed = true;
+					break;
+			}
+
+			return keyPressed;
+		}
+
+
+
+		private const uint MAPVK_VK_TO_CHAR = 2;
+
+		[DllImport("user32.dll")]
+		static extern uint MapVirtualKeyW(uint uCode, uint uMapType);
+
+		public static char KeyToChar(ConsoleKey key)
+		{
+			return unchecked((char)MapVirtualKeyW((uint)key, MAPVK_VK_TO_CHAR)); // Ignore high word.  
+		}
+	}
 }
