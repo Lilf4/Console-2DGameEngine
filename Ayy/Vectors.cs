@@ -3,6 +3,8 @@ using System.Diagnostics;
 
 public class Vector2
 {
+    static Random ran = new Random();
+
     public Vector2(float x, float y)
     {
         this.x = x;
@@ -77,10 +79,9 @@ public class Vector2
 
         return val;
     }
-    public static Vector2 Random(float lowX, float highX, float lowY, float highY)
+    public static Vector2 Random(int lowX, int highX, int lowY, int highY)
     {
-        Random ran = new Random();
-        return new Vector2(ran.Next((int)lowX, (int)highX), ran.Next((int)lowY, (int)highY));
+        return new Vector2(ran.Next(lowX, highX), ran.Next(lowY, highY));
     }
 
     #region ClassOperators
@@ -88,10 +89,10 @@ public class Vector2
     public static Vector2 operator -(Vector2 a, Vector2 b) { return new Vector2(a.x - b.x, a.y - b.y); }
     public static Vector2 operator /(Vector2 a, Vector2 b) { return new Vector2(a.x / b.x, a.y / b.y); }
     public static Vector2 operator *(Vector2 a, Vector2 b) { return new Vector2(a.x * b.x, a.y * b.y); }
-    public static bool operator >(Vector2 a, Vector2 b) { if (a.x > b.x && a.y > b.y) { return true; } return false; }
-    public static bool operator <(Vector2 a, Vector2 b) { if (a.x < b.x && a.y < b.y) { return true; } return false; }
-    public static bool operator ==(Vector2 a, Vector2 b) { if (a.x == b.x && a.y == b.y) { return true; } return false; }
-    public static bool operator !=(Vector2 a, Vector2 b) { if (a.x != b.x || a.y != b.y) { return true; } return false; }
+    public static bool operator >(Vector2 a, Vector2 b) { return a.x > b.x && a.y > b.y; }
+    public static bool operator <(Vector2 a, Vector2 b) { return a.x < b.x && a.y < b.y; }
+    public static bool operator ==(Vector2 a, Vector2 b) { return a.x == b.x && a.y == b.y; }
+    public static bool operator !=(Vector2 a, Vector2 b) { return a.x != b.x || a.y != b.y; }
     #endregion
 
     #region DefaultOperators
@@ -100,25 +101,26 @@ public class Vector2
     public static Vector2 operator -(Vector2 a, int b) { return new Vector2(a.x - b, a.y - b); }
     public static Vector2 operator /(Vector2 a, int b) { return new Vector2(a.x / b, a.y / b); }
     public static Vector2 operator *(Vector2 a, int b) { return new Vector2(a.x * b, a.y * b); }
-    public static bool operator >(Vector2 a, int b) { if (a.x > b && a.y > b) { return true; } return false; }
-    public static bool operator <(Vector2 a, int b) { if (a.x < b && a.y < b) { return true; } return false; }
-    public static bool operator ==(Vector2 a, int b) { if (a.x == b && a.y == b) { return true; } return false; }
-    public static bool operator !=(Vector2 a, int b) { if (a.x != b || a.y != b) { return true; } return false; }
+    public static bool operator >(Vector2 a, int b) { return a.x > b && a.y > b; }
+    public static bool operator <(Vector2 a, int b) { return a.x < b && a.y < b; }
+    public static bool operator ==(Vector2 a, int b) { return a.x == b && a.y == b; }
+    public static bool operator !=(Vector2 a, int b) { return a.x != b || a.y != b; }
 
     //float
     public static Vector2 operator +(Vector2 a, float b) { return new Vector2(a.x + b, a.y + b); }
     public static Vector2 operator -(Vector2 a, float b) { return new Vector2(a.x - b, a.y - b); }
     public static Vector2 operator /(Vector2 a, float b) { return new Vector2(a.x / b, a.y / b); }
     public static Vector2 operator *(Vector2 a, float b) { return new Vector2(a.x * b, a.y * b); }
-    public static bool operator >(Vector2 a, float b) { if (a.x > b && a.y > b) { return true; } return false; }
-    public static bool operator <(Vector2 a, float b) { if (a.x < b && a.y < b) { return true; } return false; }
-    public static bool operator ==(Vector2 a, float b) { if (a.x == b && a.y == b) { return true; } return false; }
-    public static bool operator !=(Vector2 a, float b) { if (a.x != b || a.y != b) { return true; } return false; }
+    public static bool operator >(Vector2 a, float b) { return a.x > b && a.y > b; }
+    public static bool operator <(Vector2 a, float b) { return a.x < b && a.y < b; }
+    public static bool operator ==(Vector2 a, float b) { return a.x == b && a.y == b; }
+    public static bool operator !=(Vector2 a, float b) { return a.x != b || a.y != b; }
     #endregion
 }
 
 public class ExMath
 {
+    
     public static int Round(float num)
     {
         var NumTruned = Math.Truncate(num);
@@ -127,11 +129,11 @@ public class ExMath
         { 
             if(x < -.5)
             {
-                return (int)(num - x);
+                return (int)(num - x) + 1;
             }
             else
             {
-                return (int)(num - x) + 1;
+                return (int)(num - x);
             }
         }
         else

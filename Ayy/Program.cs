@@ -1,22 +1,24 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace Ayy
 {
-    class Program
-    {
-        public static int Width = 200;
-        public static int Height = 100;
-        static GameSystem Game = new GameSystem(Width, Height, "Yeet");
-        public static Vector2 MoveVel = Vector2.Zero;
-		static Object Player = new Object("PLAYER", new Vector2(5, 5), new Vector2(0, 0), ConsoleColor.DarkBlue);
+	class Program
+	{
+		public static int Width = 200;
+		public static int Height = 100;
+		static GameSystem Game = new GameSystem(Width, Height, "Yeet");
+		public static Vector2 MoveVel = Vector2.Zero;
+		static Object Player = new Object("PLAYER", new Vector2(3, 3), new Vector2(0, 0), Color.DarkBlue);
+
 		static void Main(string[] args)
-        {
-            Game.ConsoleDrawer.LTRTTB_TTBLTR = true;
-            Game.AddObject(new Object("GROUND", new Vector2(Width + 1, 10), new Vector2(0, -MathF.Round(Height / 2)), ConsoleColor.Gray));
+		{
+			Game.ConsoleDrawer.LTRTTB_TTBLTR = true;
+            Game.AddObject(new Object("GROUND", new Vector2(Width + 1, 10), new Vector2(0, -MathF.Round(Height / 2)), Color.Gray));
 			Thread DEBUG = new Thread(new ThreadStart(DebugS));
 			//DEBUG.Start();
             Game.AddObject(Player);
@@ -27,7 +29,7 @@ namespace Ayy
 			Vector2 Gravity = new Vector2(0, -5.7f);
 			bool KeyWasPressed;
 
-			//while (true)
+			while (true)
             {
                 TimeBetween = (DateTime.Now.Millisecond - TimeBetween) / 1000;
                 if(TimeBetween < 0) { TimeBetween = 0; }
@@ -86,86 +88,87 @@ namespace Ayy
 				Thread.Sleep(2000);
 			}
         }
-	}
+		}
 
-	/// <summary>
-	/// yoinked from u/flying20wedge
-	/// </summary>
-	public static class Keyboard
-	{
-		[DllImport("user32.dll", SetLastError = true)]
-		[return: MarshalAs(UnmanagedType.Bool)]
-		static extern bool GetKeyboardState(byte[] lpKeyState);
-
-		public static int GetKeyState()
+		/// <summary>
+		/// yoinked from u/flying20wedge
+		/// </summary>
+		public static class Keyboard
 		{
+			[DllImport("user32.dll", SetLastError = true)]
+			[return: MarshalAs(UnmanagedType.Bool)]
+			static extern bool GetKeyboardState(byte[] lpKeyState);
 
-
-			byte[] keys = new byte[256];
-
-			//Get pressed keys
-			if (!GetKeyboardState(keys))
-			{
-				int err = Marshal.GetLastWin32Error();
-				throw new Win32Exception(err);
-			}
-
-			for (int i = 0; i < 256; i++)
+			public static int GetKeyState()
 			{
 
-				byte key = keys[i];
 
-				//Logical 'and' so we can drop the low-order bit for toggled keys, else that key will appear with the value 1!
-				if ((key & 0x80) != 0)
+				byte[] keys = new byte[256];
+
+				//Get pressed keys
+				if (!GetKeyboardState(keys))
+				{
+					int err = Marshal.GetLastWin32Error();
+					throw new Win32Exception(err);
+				}
+
+				for (int i = 0; i < 256; i++)
 				{
 
-					//This is just for a short demo, you may want this to return
-					//multiple keys!
-					return (int)key;
+					byte key = keys[i];
+
+					//Logical 'and' so we can drop the low-order bit for toggled keys, else that key will appear with the value 1!
+					if ((key & 0x80) != 0)
+					{
+
+						//This is just for a short demo, you may want this to return
+						//multiple keys!
+						return (int)key;
+					}
 				}
+				return -1;
 			}
-			return -1;
-		}
 
-		[DllImport("user32.dll")]
-		static extern short GetKeyState(ConsoleKey nVirtKey);
+			[DllImport("user32.dll")]
+			static extern short GetKeyState(ConsoleKey nVirtKey);
 
-		public static bool IsKeyPressed(ConsoleKey testKey)
-		{
-			bool keyPressed = false;
-			short result = GetKeyState(testKey);
-
-			switch (result)
+			public static bool IsKeyPressed(ConsoleKey testKey)
 			{
-				case 0:
-					// Not pressed and not toggled on.
-					keyPressed = false;
-					break;
+				bool keyPressed = false;
+				short result = GetKeyState(testKey);
 
-				case 1:
-					// Not pressed, but toggled on
-					keyPressed = false;
-					break;
+				switch (result)
+				{
+					case 0:
+						// Not pressed and not toggled on.
+						keyPressed = false;
+						break;
 
-				default:
-					// Pressed (and may be toggled on)
-					keyPressed = true;
-					break;
+					case 1:
+						// Not pressed, but toggled on
+						keyPressed = false;
+						break;
+
+					default:
+						// Pressed (and may be toggled on)
+						keyPressed = true;
+						break;
+				}
+
+				return keyPressed;
 			}
 
-			return keyPressed;
+
+
+			private const uint MAPVK_VK_TO_CHAR = 2;
+
+			[DllImport("user32.dll")]
+			static extern uint MapVirtualKeyW(uint uCode, uint uMapType);
+
+			public static char KeyToChar(ConsoleKey key)
+			{
+				return unchecked((char)MapVirtualKeyW((uint)key, MAPVK_VK_TO_CHAR)); // Ignore high word.  
+			}
 		}
-
-
-
-		private const uint MAPVK_VK_TO_CHAR = 2;
-
-		[DllImport("user32.dll")]
-		static extern uint MapVirtualKeyW(uint uCode, uint uMapType);
-
-		public static char KeyToChar(ConsoleKey key)
-		{
-			return unchecked((char)MapVirtualKeyW((uint)key, MAPVK_VK_TO_CHAR)); // Ignore high word.  
-		}
-	}
+	
 }

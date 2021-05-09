@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 public class GameSystem
 {
-    public ConsoleColor Background = ConsoleColor.White;
+    public Color Background = Color.White;
     public char BackgroundChar = ' ';
     DrawPoint[,] DisplayBuffer;
     public Draw ConsoleDrawer;
@@ -50,6 +52,8 @@ public class GameSystem
     Vector2 AdditionVector = Vector2.Copy(Vector2.Zero);
     Vector2 LastPos = Vector2.Copy(Vector2.Zero);
 
+
+    //NOTE: STUFF WORKS BUT IT NEEDS TO BE SMOOTHED IN SOME WAY AS RIGHT NOW MOVING THINGS ARE PRETTY JANKY
     public void RenderScreen()
     {
         DoCollisionChecks();
@@ -63,7 +67,7 @@ public class GameSystem
                 localPos -= Camera.CollidingObjects[i].GetSize() / 2;
                 for (int y = 0; y < Camera.CollidingObjects[i].GetSize().y; y++)
                 {
-                    AdditionVector = Vector2.Copy(localPos);
+                    AdditionVector = Vector2.Copy(localPos); 
                     if(LastPos.y == ExMath.Round(y + localPos.y)) { AdditionVector.y++; }
                     
                     for (int x = 0; x < Camera.CollidingObjects[i].GetSize().x; x++)
@@ -71,15 +75,9 @@ public class GameSystem
                         if(LastPos.x == ExMath.Round(x + localPos.x)) { AdditionVector.x++; }
                         DisplayBuffer = DrawPoint.InsertAsMiddle(DisplayBuffer, ExMath.Round(x + AdditionVector.x), ExMath.Round(y + AdditionVector.y), '#', Camera.CollidingObjects[i].Color);
                         
-                        
-                        if(Camera.CollidingObjects[i].NAME == "PLAYER")
-                        {
-                            Debug.Write(ExMath.Round(x + LastPos.x) + ":" + ExMath.Round(y + LastPos.y) + "   ");
-                        }
                         LastPos.x = ExMath.Round(x + localPos.x);
                     }
                     LastPos.y = ExMath.Round(y + localPos.y);
-                    Debug.Write("\r\n");
                 }
             }
         }
@@ -126,7 +124,7 @@ public class GameSystem
                 ObjectCollision[i].CollidingObjects.Clear();
                 for (int x = 0; x < ObjectCollision.Count; x++)
                 {
-                    if (ObjectCollision[i].ChckIfColliding(ObjectCollision[x]))
+                    if (ObjectCollision[i].CheckIfColliding(ObjectCollision[x]))
                     {
                         ObjectCollision[i].CollidingObjects.Add(ObjectCollision[x]);
                         ObjectCollision[x].CollidingObjects.Add(ObjectCollision[i]);
@@ -153,7 +151,7 @@ public class GameSystem
 public class DrawPoint
 {
     public char DisplayChar = ' ';
-    public ConsoleColor DisplayColor = ConsoleColor.White;
+    public Color DisplayColor = Color.White;
 
     //FUNCTIONS
     public static DrawPoint[,] CopyTo(DrawPoint[,] ObjToCopy, DrawPoint[,] ObjToTransferTo)
@@ -181,7 +179,7 @@ public class DrawPoint
         }
         return Out;
     }
-    public static DrawPoint[,] InsertAsMiddle(DrawPoint[,] array, int x, int y, char Char, ConsoleColor Color)
+    public static DrawPoint[,] InsertAsMiddle(DrawPoint[,] array, int x, int y, char Char, Color Color)
     {
         Vector2 A = new Vector2(x + array.GetLength(0) / 2, -y + array.GetLength(1) / 2);
         if (A.x > -1 && A.x < array.GetLength(0) && A.y > -1 && A.y < array.GetLength(1))
@@ -191,7 +189,7 @@ public class DrawPoint
         }
         return array;
     }
-    public static DrawPoint[,] Const(char Char, ConsoleColor Color, DrawPoint[,] Buffer)
+    public static DrawPoint[,] Const(char Char, Color Color, DrawPoint[,] Buffer)
     {
         for (int y = 0; y < Buffer.GetLength(1); y++)
         {
@@ -207,6 +205,14 @@ public class DrawPoint
 }
 public class Draw
 {
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool SetConsoleMode(IntPtr hConsoleHandle, int mode);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool GetConsoleMode(IntPtr handle, out int mode);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern IntPtr GetStdHandle(int handle);
+
     public bool ForceDraw;
     /// <summary>
     /// <para>Bottleneck frame rate True/False</para>
@@ -242,7 +248,7 @@ public class Draw
         Console.CursorVisible = false;
         this.Width = width;
         this.Height = height;
-        this.CurrDisplay = DrawPoint.Const(' ', ConsoleColor.White, new DrawPoint[width, height]);
+        this.CurrDisplay = DrawPoint.Const(' ', Color.White, new DrawPoint[width, height]);
         this.Buffer = DrawPoint.CopyTo(StartBuffer, new DrawPoint[width, height]);
         this.SafeGaurdBuffer = DrawPoint.CopyTo(StartBuffer, new DrawPoint[width, height]);
         if (Console.BufferHeight < Height) { Console.BufferHeight = Height; }
@@ -262,6 +268,11 @@ public class Draw
 
     public void Start()
     {
+        var handle = GetStdHandle(-11);
+        int mode;
+        GetConsoleMode(handle, out mode);
+        SetConsoleMode(handle, mode | 0x4);
+
         StopThreads = false;
         Thread BeginDraw = new Thread(new ThreadStart(DrawLoop));
         ForceDraw = true;
@@ -301,6 +312,7 @@ public class Draw
         StopThreads = true;
     }
 
+    Color DisColor;
     void DrawScreen()
     {
         Buffer = DrawPoint.CopyTo(SafeGaurdBuffer, Buffer);
@@ -332,11 +344,14 @@ public class Draw
                 break;
         }
 
+
+        
+
         void DrawToPoint(int x, int y)
         {
             Console.SetCursorPosition(x, y);
-            Console.ForegroundColor = Buffer[x, y].DisplayColor;
-            Console.Write(Buffer[x, y].DisplayChar);
+            DisColor = Buffer[x, y].DisplayColor;
+            Console.Write($"\x1b[38;2;{DisColor.R};{DisColor.G};{DisColor.B}m{Buffer[x, y].DisplayChar}");
         }
 
         Console.SetCursorPosition(0, 0);
@@ -352,7 +367,7 @@ public class Object
     public string ID;
     public string NAME;
     public bool Visible = true;
-    public ConsoleColor Color = ConsoleColor.White;
+    public Color Color = Color.White;
     Vector2 TopLeft;
     Vector2 BotRight;
     Vector2 Size;
@@ -370,7 +385,7 @@ public class Object
         CalcNewSizePos();
     }
 
-    public Object(string NAME, Vector2 Size, Vector2 Position, ConsoleColor Color)
+    public Object(string NAME, Vector2 Size, Vector2 Position, Color Color)
     {
         Random ran = new Random();
         this.NAME = NAME;
@@ -427,7 +442,7 @@ public class Object
         return Size;
     }
 
-    public bool ChckIfColliding(Object Obj)
+    public bool CheckIfColliding(Object Obj)
     {
         return Vector2.doOverlap(this.TopLeft, this.BotRight, Obj.TopLeft, Obj.BotRight);
     }
