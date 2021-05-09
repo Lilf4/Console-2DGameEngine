@@ -87,6 +87,10 @@ namespace Ayy
 			}
         }
 	}
+
+	/// <summary>
+	/// yoinked from u/flying20wedge
+	/// </summary>
 	public static class Keyboard
 	{
 		[DllImport("user32.dll", SetLastError = true)]
