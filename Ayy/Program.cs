@@ -20,9 +20,10 @@ namespace Ayy
 		static void Main(string[] args)
 		{
 			TEXTOBJECT.TEXT_OBJ = true;
-			//Player.AddObjectAsChild(PlayerGroundCollision);
+			Player.AddObjectAsChild(PGroundCol);
+			PGroundCol.RePosition(Vector2.Down * Player.GetSize().y * 0.5f, true);
 
-			PGroundCol.Visible = false;
+			//PGroundCol.Visible = false;
 			Game.ConsoleDrawer.LTRTTB_TTBLTR = true;
             Game.AddObject(new Object("GROUND", new Vector2(Width + 1, 10), new Vector2(0, -MathF.Round(Height / 2)), Color.Gray));
 
@@ -71,7 +72,7 @@ namespace Ayy
 
 
 
-				PGroundCol.RePosition(Player.GetPos() + Vector2.Down * (Player.GetSize().y * 0.5f));
+				//PGroundCol.RePosition(Player.GetPos() + Vector2.Down * (Player.GetSize().y * 0.5f));
 				Player.RePosition(Player.GetPos() + (MoveVel * (MoveVectors * MoveSpeed * TimeBetween)));
 				KeyWasPressed = false;
 				if (Keyboard.IsKeyPressed(ConsoleKey.A))

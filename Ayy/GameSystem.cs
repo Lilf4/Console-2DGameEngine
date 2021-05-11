@@ -416,6 +416,7 @@ public class Object
     void RecalcParentPos()
     {
         this.Position = CentParPos + Parent.GetPos();
+        CalcNewSizePos();
     }
 
     public void Resize(Vector2 Size)
