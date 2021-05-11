@@ -30,16 +30,7 @@ public class Vector2
 
     public static bool doOverlap(Vector2 l1, Vector2 r1, Vector2 l2, Vector2 r2)
     {
-
-        // If one rectangle is on left side of other
-        if (l1.x >= r2.x || l2.x >= r1.x)
-            return false;
-
-        // If one rectangle is above other
-        if (l1.y <= r2.y || l2.y <= r1.y)
-            return false;
-
-        return true;
+        return !(l1.y <= r2.y || l2.y <= r1.y) && !(l1.x >= r2.x || l2.x >= r1.x);
     }
 
     public static Vector2 Copy(Vector2 valueToCopy)
@@ -118,35 +109,3 @@ public class Vector2
     #endregion
 }
 
-public class ExMath
-{
-    
-    public static int Round(float num)
-    {
-        var NumTruned = Math.Truncate(num);
-        var x = num - NumTruned;
-        if(x < 0) 
-        { 
-            if(x < -.5)
-            {
-                return (int)(num - x) + 1;
-            }
-            else
-            {
-                return (int)(num - x);
-            }
-        }
-        else
-        {
-            if (x < .5)
-            {
-                return (int)(num - x);
-            }
-            else
-            {
-                return (int)(num - x) + 1;
-            }
-        }
-        
-    }
-}

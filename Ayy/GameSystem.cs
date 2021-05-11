@@ -15,7 +15,6 @@ public class GameSystem
     Random Ran = new Random();
     List<Object> Objects = new List<Object>();
     List<Object> ObjectCollision = new List<Object>();
-    List<Object> ObjectsToCheck = new List<Object>();
     public Object Camera;
     public GameSystem(int ScreenWidth, int ScreenHeight, string GameName)
     {
@@ -60,29 +59,44 @@ public class GameSystem
         DisplayBuffer = DrawPoint.Const(BackgroundChar, Background, DisplayBuffer);
         for (int i = 0; i < Camera.CollidingObjects.Count; i++)
         {
-            if (Camera.CollidingObjects[i].Visible && Camera.CollidingObjects[i].NAME != Camera.NAME)
+            if (Camera.CollidingObjects[i].Visible && Camera.CollidingObjects[i].NAME != Camera.NAME && !Camera.CollidingObjects[i].TEXT_OBJ)
             {
-                LastPos = Vector2.Copy(Vector2.Zero);
+                LastPos = Camera.CollidingObjects[i].GetPos() - 1;
                 localPos = Camera.LocalizePos(Camera.CollidingObjects[i]);
                 localPos -= Camera.CollidingObjects[i].GetSize() / 2;
                 for (int y = 0; y < Camera.CollidingObjects[i].GetSize().y; y++)
                 {
-                    AdditionVector = Vector2.Copy(localPos); 
-                    if(LastPos.y == ExMath.Round(y + localPos.y)) { AdditionVector.y++; }
-                    
+                    AdditionVector = Vector2.Copy(localPos);
+                    if (LastPos.y == Math.Floor(y + localPos.y)) { AdditionVector.y++; }
+
                     for (int x = 0; x < Camera.CollidingObjects[i].GetSize().x; x++)
                     {
-                        if(LastPos.x == ExMath.Round(x + localPos.x)) { AdditionVector.x++; }
-                        DisplayBuffer = DrawPoint.InsertAsMiddle(DisplayBuffer, ExMath.Round(x + AdditionVector.x), ExMath.Round(y + AdditionVector.y), '#', Camera.CollidingObjects[i].Color);
-                        
-                        LastPos.x = ExMath.Round(x + localPos.x);
+                        if (LastPos.x == Math.Floor(x + localPos.x)) { AdditionVector.x++; }
+                        DisplayBuffer = DrawPoint.InsertAsMiddle(DisplayBuffer, (int)Math.Floor(x + AdditionVector.x), (int)Math.Floor(y + AdditionVector.y), '#', Camera.CollidingObjects[i].Color);
+
+                        LastPos.x = (int)Math.Floor(x + localPos.x);
                     }
-                    LastPos.y = ExMath.Round(y + localPos.y);
+                    LastPos.y = (int)Math.Floor(y + localPos.y);
+                }
+            }
+            else if (Camera.CollidingObjects[i].TEXT_OBJ)
+            {
+                localPos = Camera.LocalizePos(Camera.CollidingObjects[i]);
+                string[] TEXT = Camera.CollidingObjects[i].txt.Split("\r\n");
+                for (int y = 0; y < TEXT.Length; y++)
+                {
+                    for (int x = 0; x < TEXT[y].Length; x++)
+                    {
+                        //Debug.WriteLine(TEXT[y] + " : " + y);
+                        DisplayBuffer = DrawPoint.InsertAsMiddle(DisplayBuffer, (int)Math.Floor(x + localPos.x), (int)Math.Floor(localPos.y - y), TEXT[y][x], Camera.CollidingObjects[i].Color);
+                    }
                 }
             }
         }
         ConsoleDrawer.UpdateBuffer(DisplayBuffer);
     }
+
+
 
     public Object[] GetObjectByName(string Name)
     {
@@ -116,25 +130,17 @@ public class GameSystem
 
     public void DoCollisionChecks()
     {
-        ObjectsToCheck.AddRange(ObjectCollision);
         for (int i = 0; i < ObjectCollision.Count; i++)
         {
-            if (ObjectsToCheck.Contains(ObjectCollision[i]))
+            ObjectCollision[i].CollidingObjects.Clear();
+            for (int x = 0; x < ObjectCollision.Count; x++)
             {
-                ObjectCollision[i].CollidingObjects.Clear();
-                for (int x = 0; x < ObjectCollision.Count; x++)
+                if (ObjectCollision[i].NAME != ObjectCollision[x].NAME && ObjectCollision[i].CheckIfColliding(ObjectCollision[x]))
                 {
-                    if (ObjectCollision[i].CheckIfColliding(ObjectCollision[x]))
-                    {
-                        ObjectCollision[i].CollidingObjects.Add(ObjectCollision[x]);
-                        ObjectCollision[x].CollidingObjects.Add(ObjectCollision[i]);
-                        if(ObjectCollision[i].NAME != "CAMERA")
-                        {
-                            ObjectsToCheck.Remove(ObjectCollision[x]);
-                        }
-                    }
+                    ObjectCollision[i].CollidingObjects.Add(ObjectCollision[x]);
                 }
             }
+
         }
     }
 
@@ -214,6 +220,7 @@ public class Draw
     public static extern IntPtr GetStdHandle(int handle);
 
     public bool ForceDraw;
+
     /// <summary>
     /// <para>Bottleneck frame rate True/False</para>
     /// </summary>
@@ -233,6 +240,7 @@ public class Draw
 
     public int AvgFramesPerSec;
     bool StopThreads;
+    bool UpdateScreen;
     DrawPoint[,] CurrDisplay;
     DrawPoint[,] Buffer;
     DrawPoint[,] SafeGaurdBuffer;
@@ -264,6 +272,7 @@ public class Draw
     public void UpdateBuffer(DrawPoint[,] Buffer)
     {
         this.SafeGaurdBuffer = DrawPoint.CopyTo(Buffer, this.SafeGaurdBuffer);
+        UpdateScreen = true;
     }
 
     public void Start()
@@ -280,18 +289,25 @@ public class Draw
     }
 
     DateTime BottleNeckTimer = DateTime.Now;
-    DateTime FrameTimer;
+    DateTime FrameTimer = DateTime.Now;
     int Frames = 0;
     void DrawLoop()
     {
         StopThreads = false;
         while (!StopThreads)
         {
-            DrawScreen();
+            if (SafeGaurdBuffer != CurrDisplay && UpdateScreen)
+            {
+                DrawScreen();
+                UpdateScreen = false;
+            }
+
+
+
             switch (BTLNCKFR)
             {
                 case true:
-                    if (BottleNeckTimer == null || DateTime.Now > BottleNeckTimer)
+                    if (DateTime.Now > BottleNeckTimer)
                     {
                         BottleNeckTimer = DateTime.Now.AddMilliseconds(1000 / BttlFrm);
                         Thread.Sleep(1000 / BttlFrm);
@@ -299,12 +315,7 @@ public class Draw
                     break;
             }
         }
-        if (FrameTimer == null || FrameTimer <= DateTime.Now)
-        {
-            FrameTimer = DateTime.Now.AddSeconds(1);
-            AvgFramesPerSec = Frames;
-            Frames = 0;
-        }
+
     }
 
     public void Stop()
@@ -345,7 +356,7 @@ public class Draw
         }
 
 
-        
+
 
         void DrawToPoint(int x, int y)
         {
@@ -367,18 +378,20 @@ public class Object
     public string ID;
     public string NAME;
     public bool Visible = true;
+    public bool TEXT_OBJ;
+    public string txt = "";
     public Color Color = Color.White;
     Vector2 TopLeft;
     Vector2 BotRight;
     Vector2 Size;
     Vector2 Position;
+    Vector2 CentParPos = Vector2.Copy(Vector2.Zero);
     public List<Object> CollidingObjects = new List<Object>();
     public List<Object> Children = new List<Object>();
     public Object Parent;
 
     public Object(string NAME, Vector2 Size, Vector2 Position)
     {
-        Random ran = new Random();
         this.NAME = NAME;
         this.Size = Size;
         this.Position = Position;
@@ -387,7 +400,6 @@ public class Object
 
     public Object(string NAME, Vector2 Size, Vector2 Position, Color Color)
     {
-        Random ran = new Random();
         this.NAME = NAME;
         this.Size = Size;
         this.Position = Position;
@@ -403,7 +415,7 @@ public class Object
 
     void RecalcParentPos()
     {
-        this.Position = Position + Parent.GetPos();
+        this.Position = CentParPos + Parent.GetPos();
     }
 
     public void Resize(Vector2 Size)
@@ -412,9 +424,47 @@ public class Object
         CalcNewSizePos();
     }
 
+    void ReposChildren()
+    {
+        if (Children.Count > 0)
+        {
+            foreach (Object child in Children)
+            {
+                child.RecalcParentPos();
+            }
+        }
+    }
+
     public void RePosition(Vector2 Position)
     {
         this.Position = Position;
+        ReposChildren();
+        CalcNewSizePos();
+    }
+
+    public void RePosition(float x, float y)
+    {
+        this.Position.x = x;
+        this.Position.y = y;
+        ReposChildren();
+        CalcNewSizePos();
+    }
+
+    public void RePosition(float x, float y, bool doParent)
+    {
+        switch (doParent)
+        {
+            case true:
+                CentParPos.x = x;
+                CentParPos.y = y;
+                RecalcParentPos();
+                break;
+            case false:
+                this.Position.x = x;
+                this.Position.y = y;
+                break;
+        }
+        ReposChildren();
         CalcNewSizePos();
     }
 
@@ -423,13 +473,21 @@ public class Object
         switch (doParent)
         {
             case true:
+                CentParPos = Position;
                 RecalcParentPos();
                 break;
             case false:
                 this.Position = Position;
                 break;
         }
+        ReposChildren();
         CalcNewSizePos();
+    }
+
+    public void AddObjectAsChild(Object Child)
+    {
+        this.Children.Add(Child);
+        Child.Parent = this;
     }
 
     public Vector2 GetPos()
@@ -445,6 +503,7 @@ public class Object
     public bool CheckIfColliding(Object Obj)
     {
         return Vector2.doOverlap(this.TopLeft, this.BotRight, Obj.TopLeft, Obj.BotRight);
+        
     }
 
     void CalcNewSizePos()

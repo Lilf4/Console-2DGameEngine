@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
@@ -13,27 +14,65 @@ namespace Ayy
 		public static int Height = 100;
 		static GameSystem Game = new GameSystem(Width, Height, "Yeet");
 		public static Vector2 MoveVel = Vector2.Zero;
-		static Object Player = new Object("PLAYER", new Vector2(3, 3), new Vector2(0, 0), Color.DarkBlue);
-
+		static Object Player = new Object("PLAYER", new Vector2(5, 5), new Vector2(0, 0), Color.DarkBlue);
+		static Object PGroundCol = new Object("AAA", new Vector2(5, 1), new Vector2(10, 0), Color.Green);
+		static Object TEXTOBJECT = new Object("TEXT_VIS", new Vector2(1, 1), new Vector2((-Width / 2) + 1, (Height / 2) - 1), Color.Green);
 		static void Main(string[] args)
 		{
+			TEXTOBJECT.TEXT_OBJ = true;
+			//Player.AddObjectAsChild(PlayerGroundCollision);
+
+			PGroundCol.Visible = false;
 			Game.ConsoleDrawer.LTRTTB_TTBLTR = true;
             Game.AddObject(new Object("GROUND", new Vector2(Width + 1, 10), new Vector2(0, -MathF.Round(Height / 2)), Color.Gray));
-			Thread DEBUG = new Thread(new ThreadStart(DebugS));
+
+			//Thread DEBUG = new Thread(new ThreadStart(DebugS));
 			//DEBUG.Start();
-            Game.AddObject(Player);
-            Game.RenderScreen();
+			Game.AddObject(PGroundCol);
+			Game.AddObject(Player);
+			Game.AddObject(TEXTOBJECT);
+			Game.RenderScreen();
             float TimeBetween = DateTime.Now.Millisecond;
             Vector2 MoveVectors = new Vector2(1, 1);
 			Vector2 MoveSpeed = new Vector2(5, 5);
 			Vector2 Gravity = new Vector2(0, -5.7f);
+
+			List<Object> SINEWAVE = new List<Object>();
+
+			/*for(float i = 0; i < 200; i += 1f)
+            {
+				SINEWAVE.Add(new Object("SINE", new Vector2(1, 1), new Vector2(i - 100, 0)));
+            }
+			float Volume = 20f;
+			float Frequency = 5f; 
+			float WAVEXPOS = 0f;
+			foreach (Object obj in SINEWAVE)
+            {
+				Game.AddObject(obj);
+				obj.RePosition(new Vector2(obj.GetPos().x, MathF.Sin(WAVEXPOS * Frequency) * Volume));
+				WAVEXPOS += 0.001f;
+			}*/
 			bool KeyWasPressed;
 
+			float TIME = 0;
 			while (true)
             {
                 TimeBetween = (DateTime.Now.Millisecond - TimeBetween) / 1000;
                 if(TimeBetween < 0) { TimeBetween = 0; }
-					Player.RePosition(Player.GetPos() + (MoveVel * (MoveVectors * MoveSpeed * TimeBetween)));
+
+				/*
+				TIME += TimeBetween;
+				WAVEXPOS = 0f;
+				foreach (Object obj in SINEWAVE)
+				{
+					obj.RePosition(obj.GetPos().x, MathF.Sin((WAVEXPOS * Frequency) + TIME) * Volume);
+					WAVEXPOS += 0.01f;
+				}*/
+
+
+
+				PGroundCol.RePosition(Player.GetPos() + Vector2.Down * (Player.GetSize().y * 0.5f));
+				Player.RePosition(Player.GetPos() + (MoveVel * (MoveVectors * MoveSpeed * TimeBetween)));
 				KeyWasPressed = false;
 				if (Keyboard.IsKeyPressed(ConsoleKey.A))
 				{
@@ -49,11 +88,16 @@ namespace Ayy
                 {
 					MoveVel.x = 0;
                 }
-
-
-
 				MoveVel += Gravity * TimeBetween;
-				foreach (Object a in Player.CollidingObjects)
+
+				TEXTOBJECT.txt = "";
+				for(int i = 0; i < PGroundCol.CollidingObjects.Count; i++)
+                {
+					TEXTOBJECT.txt += PGroundCol.CollidingObjects[i].NAME + "\r\n";
+				}
+
+				TEXTOBJECT.txt = TEXTOBJECT.txt.Remove(TEXTOBJECT.txt.LastIndexOf("\r\n"));
+				foreach (Object a in PGroundCol.CollidingObjects)
 				{
 					if(a.NAME == "GROUND")
                     {
@@ -64,20 +108,18 @@ namespace Ayy
 						else
 						{
 							MoveVel.y = 0;
+							Player.RePosition(new Vector2(Player.GetPos().x, a.GetPos().y + (a.GetSize().y / 2) + (Player.GetSize().y / 2)));
+							break;
 						}
 					}
 				}
-
 				MoveVel = Vector2.Clamp(MoveVel, -3f, 3f, -5f, 5f);
-
+				
 				TimeBetween = DateTime.Now.Millisecond;
                 Game.RenderScreen();
             }
         }
-		static float lerp(float v0, float v1, float t)
-		{
-			return v0 + t * (v1 - v0);
-		}
+
 
 		static void DebugS()
         {
@@ -88,7 +130,7 @@ namespace Ayy
 				Thread.Sleep(2000);
 			}
         }
-		}
+	}
 
 		/// <summary>
 		/// yoinked from u/flying20wedge
