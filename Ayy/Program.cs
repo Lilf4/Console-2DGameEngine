@@ -15,21 +15,30 @@ namespace Ayy
 		static GameSystem Game = new GameSystem(Width, Height, "Yeet");
 		public static Vector2 MoveVel = Vector2.Zero;
 		static Object Player = new Object("PLAYER", new Vector2(5, 5), new Vector2(0, 0), Color.DarkBlue);
-		static Object PGroundCol = new Object("AAA", new Vector2(5, 1), new Vector2(10, 0), Color.Green);
+		static Object[] PColDetection = new Object[4] 
+		{ 
+			new Object("GroundCol", new Vector2(Player.GetSize().x, 1), Player.GetPos() - Player.GetSize().y * 0.5f, Color.Green), 
+			new Object("RWallCol", new Vector2(1, Player.GetSize().y), Player.GetPos() + Player.GetSize().x * 0.5f, Color.Green), 
+			new Object("LWallCol", new Vector2(1, Player.GetSize().y), Player.GetPos() - Player.GetSize().x * 0.5f, Color.Green), 
+			new Object("HeadCol", new Vector2(Player.GetSize().x, 1), Player.GetPos() + Player.GetSize().y * 0.5f, Color.Green) 
+		};
+		
 		static Object TEXTOBJECT = new Object("TEXT_VIS", new Vector2(1, 1), new Vector2((-Width / 2) + 1, (Height / 2) - 1), Color.Green);
 		static void Main(string[] args)
 		{
 			TEXTOBJECT.TEXT_OBJ = true;
-			Player.AddObjectAsChild(PGroundCol);
-			PGroundCol.RePosition(Vector2.Down * Player.GetSize().y * 0.5f, true);
-
-			//PGroundCol.Visible = false;
+			foreach(Object PCOL in PColDetection)
+            {
+				Player.AddObjectAsChild(PCOL);
+				PCOL.Visible = false;
+				Game.AddObject(PCOL);
+			}
 			Game.ConsoleDrawer.LTRTTB_TTBLTR = true;
             Game.AddObject(new Object("GROUND", new Vector2(Width + 1, 10), new Vector2(0, -MathF.Round(Height / 2)), Color.Gray));
+			Game.AddObject(new Object("GROUND", new Vector2(10, 2), new Vector2(10, -40), Color.Magenta));
 
 			//Thread DEBUG = new Thread(new ThreadStart(DebugS));
 			//DEBUG.Start();
-			Game.AddObject(PGroundCol);
 			Game.AddObject(Player);
 			Game.AddObject(TEXTOBJECT);
 			Game.RenderScreen();
@@ -92,13 +101,15 @@ namespace Ayy
 				MoveVel += Gravity * TimeBetween;
 
 				TEXTOBJECT.txt = "";
-				for(int i = 0; i < PGroundCol.CollidingObjects.Count; i++)
+				for(int i = 0; i < PColDetection[0].CollidingObjects.Count; i++)
                 {
-					TEXTOBJECT.txt += PGroundCol.CollidingObjects[i].NAME + "\r\n";
+					TEXTOBJECT.txt += PColDetection[0].CollidingObjects[i].NAME + "\r\n";
 				}
 
-				TEXTOBJECT.txt = TEXTOBJECT.txt.Remove(TEXTOBJECT.txt.LastIndexOf("\r\n"));
-				foreach (Object a in PGroundCol.CollidingObjects)
+				try { TEXTOBJECT.txt = TEXTOBJECT.txt.Remove(TEXTOBJECT.txt.LastIndexOf("\r\n")); } catch { }
+				
+				Game.GetCollision(PColDetection);
+				foreach (Object a in PColDetection[0].CollidingObjects)
 				{
 					if(a.NAME == "GROUND")
                     {

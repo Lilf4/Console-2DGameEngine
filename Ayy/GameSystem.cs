@@ -53,9 +53,38 @@ public class GameSystem
 
 
     //NOTE: STUFF WORKS BUT IT NEEDS TO BE SMOOTHED IN SOME WAY AS RIGHT NOW MOVING THINGS ARE PRETTY JANKY
+
+    public void GetCollision(Object obj)
+    {
+        obj.CollidingObjects.Clear();
+        for (int x = 0; x < ObjectCollision.Count; x++)
+        {
+            if (obj.NAME != ObjectCollision[x].NAME && obj.CheckIfColliding(ObjectCollision[x]))
+            {
+                obj.CollidingObjects.Add(ObjectCollision[x]);
+            }
+        }
+    }
+
+    public void GetCollision(Object[] obj)
+    {
+        foreach(Object Iobj in obj)
+        {
+            Iobj.CollidingObjects.Clear();
+            for (int x = 0; x < ObjectCollision.Count; x++)
+            {
+                if (Iobj.NAME != ObjectCollision[x].NAME && Iobj.CheckIfColliding(ObjectCollision[x]))
+                {
+                    Iobj.CollidingObjects.Add(ObjectCollision[x]);
+                }
+            }
+        }
+        
+    }
+
     public void RenderScreen()
     {
-        DoCollisionChecks();
+        GetCollision(Camera);
         DisplayBuffer = DrawPoint.Const(BackgroundChar, Background, DisplayBuffer);
         for (int i = 0; i < Camera.CollidingObjects.Count; i++)
         {
@@ -128,21 +157,7 @@ public class GameSystem
         return null;
     }
 
-    public void DoCollisionChecks()
-    {
-        for (int i = 0; i < ObjectCollision.Count; i++)
-        {
-            ObjectCollision[i].CollidingObjects.Clear();
-            for (int x = 0; x < ObjectCollision.Count; x++)
-            {
-                if (ObjectCollision[i].NAME != ObjectCollision[x].NAME && ObjectCollision[i].CheckIfColliding(ObjectCollision[x]))
-                {
-                    ObjectCollision[i].CollidingObjects.Add(ObjectCollision[x]);
-                }
-            }
 
-        }
-    }
 
     public void RemoveObject(Object obj)
     {
@@ -385,24 +400,20 @@ public class Object
     Vector2 BotRight;
     Vector2 Size;
     Vector2 Position;
-    Vector2 CentParPos = Vector2.Copy(Vector2.Zero);
+    Vector2 CentParPos;
     public List<Object> CollidingObjects = new List<Object>();
     public List<Object> Children = new List<Object>();
     public Object Parent;
 
-    public Object(string NAME, Vector2 Size, Vector2 Position)
-    {
-        this.NAME = NAME;
-        this.Size = Size;
-        this.Position = Position;
-        CalcNewSizePos();
-    }
+    public Object(string NAME, Vector2 Size, Vector2 Position) { CREATEOBJECT(NAME, Size, Position, Color.White); }
+    public Object(string NAME, Vector2 Size, Vector2 Position, Color Color) { CREATEOBJECT(NAME, Size, Position, Color); }
 
-    public Object(string NAME, Vector2 Size, Vector2 Position, Color Color)
+    void CREATEOBJECT(string NAME, Vector2 Size, Vector2 Position, Color Color)
     {
         this.NAME = NAME;
         this.Size = Size;
         this.Position = Position;
+        this.CentParPos = Position;
         this.Color = Color;
         CalcNewSizePos();
     }
@@ -436,22 +447,14 @@ public class Object
         }
     }
 
-    public void RePosition(Vector2 Position)
-    {
-        this.Position = Position;
-        ReposChildren();
-        CalcNewSizePos();
-    }
+    //NOTE: GO THRU AND OPTIMIZE THESE KIND OF THINGS FURTHER
+    public void RePosition(Vector2 Position) { REPOS(Position.x, Position.y, false); }
+    public void RePosition(float x, float y) { REPOS(x, y, false); }
+    public void RePosition(float x, float y, bool doParent) { REPOS(x, y, doParent); }
+    public void RePosition(Vector2 Position, bool doParent) { REPOS(Position.x, Position.y, doParent); }
 
-    public void RePosition(float x, float y)
-    {
-        this.Position.x = x;
-        this.Position.y = y;
-        ReposChildren();
-        CalcNewSizePos();
-    }
 
-    public void RePosition(float x, float y, bool doParent)
+    void REPOS(float x, float y, bool doParent)
     {
         switch (doParent)
         {
@@ -463,22 +466,6 @@ public class Object
             case false:
                 this.Position.x = x;
                 this.Position.y = y;
-                break;
-        }
-        ReposChildren();
-        CalcNewSizePos();
-    }
-
-    public void RePosition(Vector2 Position, bool doParent)
-    {
-        switch (doParent)
-        {
-            case true:
-                CentParPos = Position;
-                RecalcParentPos();
-                break;
-            case false:
-                this.Position = Position;
                 break;
         }
         ReposChildren();
@@ -512,7 +499,4 @@ public class Object
         TopLeft = new Vector2(-Size.x / 2, Size.y / 2) + Position;
         BotRight = new Vector2(Size.x / 2, -Size.y / 2) + Position;
     }
-
-
 }
-
