@@ -10,28 +10,81 @@ public class GameSystem
     public Color Background = Color.White;
     public char BackgroundChar = ' ';
     DrawPoint[,] DisplayBuffer;
-    public Draw ConsoleDrawer;
+    public Draw Renderer;
 
     Random Ran = new Random();
     List<Object> Objects = new List<Object>();
-    List<Object> ObjectCollision = new List<Object>();
     public Object Camera;
+
+    public GameSystem(int ScreenWidth, int ScreenHeight)
+    {
+        SETUP(ScreenWidth, ScreenHeight, "", false);
+    }
+    public GameSystem(int ScreenWidth, int ScreenHeight, bool LTRTTB_TTBLTR)
+    {
+        SETUP(ScreenWidth, ScreenHeight, "", LTRTTB_TTBLTR);
+    }
     public GameSystem(int ScreenWidth, int ScreenHeight, string GameName)
+    {
+        SETUP(ScreenWidth, ScreenHeight, GameName, false);
+    }
+    public GameSystem(int ScreenWidth, int ScreenHeight, string GameName, bool LTRTTB_TTBLTR)
+    {
+        SETUP(ScreenWidth, ScreenHeight, GameName, LTRTTB_TTBLTR);
+    }
+
+    //TODO - FIX THIS CODE LATER
+    public void ChangeLayer(Object obj, int layer)
+    {
+        if(Objects.Count > 0)
+        {
+            Objects.Remove(obj);
+            int LastObjLayer = -999999999;
+            //Debug.WriteLine(Objects.Count);
+            int count = Objects.Count;
+            for (int i = 0; i < count; i++)
+            {
+                if(layer >= LastObjLayer && layer <= Objects[i].LAYER)
+                {
+                    Debug.WriteLine(Objects[i].LAYER + " : " + layer + " : " + LastObjLayer);
+                    Objects.Insert(i + 1, obj);
+                    return;
+                }
+                else if(layer < LastObjLayer)
+                {
+                    Objects.Insert(i - 1, obj);
+                    return;
+                }
+                LastObjLayer = Objects[i].LAYER;
+                
+            }
+        }
+        else
+        {
+            Objects.Add(obj);
+        }
+        
+    }
+
+
+    void SETUP(int ScreenWidth, int ScreenHeight, string GameName, bool LTRTTB_TTBLTR)
     {
         Camera = new Object("CAMERA", new Vector2(ScreenWidth, ScreenHeight), new Vector2(0, 0));
         DisplayBuffer = DrawPoint.InitPoint(ScreenWidth, ScreenHeight);
         DisplayBuffer = DrawPoint.Const(BackgroundChar, Background, DisplayBuffer);
-        ConsoleDrawer = new Draw(ScreenWidth, ScreenHeight, DisplayBuffer, GameName);
-        ConsoleDrawer.Start();
+        Renderer = new Draw(ScreenWidth, ScreenHeight, DisplayBuffer, GameName);
+        Renderer.LTRTTB_TTBLTR = LTRTTB_TTBLTR;
+        Renderer.Start();
         AddObject(Camera);
     }
+
 
     public void AddObject(Object obj)
     {
         while (!isValidID(Ran.Next(9999999).ToString())) { }
 
-        Objects.Add(obj);
-        ObjectCollision.Add(obj);
+        ChangeLayer(obj, obj.LAYER);
+        
 
         bool isValidID(string ID)
         {
@@ -47,43 +100,43 @@ public class GameSystem
         }
     }
 
-    Vector2 localPos;
-    Vector2 AdditionVector = Vector2.Copy(Vector2.Zero);
-    Vector2 LastPos = Vector2.Copy(Vector2.Zero);
-
-
-    //NOTE: STUFF WORKS BUT IT NEEDS TO BE SMOOTHED IN SOME WAY AS RIGHT NOW MOVING THINGS ARE PRETTY JANKY
+    
 
     public void GetCollision(Object obj)
     {
         obj.CollidingObjects.Clear();
-        for (int x = 0; x < ObjectCollision.Count; x++)
+        for (int x = 0; x < Objects.Count; x++)
         {
-            if (obj.NAME != ObjectCollision[x].NAME && obj.CheckIfColliding(ObjectCollision[x]))
+            if (obj.NAME != Objects[x].NAME && obj.CheckIfColliding(Objects[x]))
             {
-                obj.CollidingObjects.Add(ObjectCollision[x]);
+                obj.CollidingObjects.Add(Objects[x]);
             }
         }
     }
-
     public void GetCollision(Object[] obj)
     {
         foreach(Object Iobj in obj)
         {
             Iobj.CollidingObjects.Clear();
-            for (int x = 0; x < ObjectCollision.Count; x++)
+            for (int x = 0; x < Objects.Count; x++)
             {
-                if (Iobj.NAME != ObjectCollision[x].NAME && Iobj.CheckIfColliding(ObjectCollision[x]))
+                if (Iobj.NAME != Objects[x].NAME && Iobj.CheckIfColliding(Objects[x]))
                 {
-                    Iobj.CollidingObjects.Add(ObjectCollision[x]);
+                    Iobj.CollidingObjects.Add(Objects[x]);
                 }
             }
         }
         
     }
 
+    //NOTE: there are still some weird artifacts going on as if something is being rounded the wrong way --- no idea if this is still the case i hafta look into it - TODO
+    //yes there are indeed still some artifacts around the 0 coordinate but that will hafta wait
     public void RenderScreen()
     {
+        Vector2 localPos;
+        Vector2 AdditionVector;
+        Vector2 LastPos;
+
         GetCollision(Camera);
         DisplayBuffer = DrawPoint.Const(BackgroundChar, Background, DisplayBuffer);
         for (int i = 0; i < Camera.CollidingObjects.Count; i++)
@@ -95,37 +148,38 @@ public class GameSystem
                 localPos -= Camera.CollidingObjects[i].GetSize() / 2;
                 for (int y = 0; y < Camera.CollidingObjects[i].GetSize().y; y++)
                 {
+                    
                     AdditionVector = Vector2.Copy(localPos);
-                    if (LastPos.y == Math.Floor(y + localPos.y)) { AdditionVector.y++; }
-
+                    LastPos.y = y + localPos.y - 1;
+                    if (LastPos.y == ExMath.Round(y + localPos.y)) { AdditionVector.y++; }
                     for (int x = 0; x < Camera.CollidingObjects[i].GetSize().x; x++)
                     {
-                        if (LastPos.x == Math.Floor(x + localPos.x)) { AdditionVector.x++; }
-                        DisplayBuffer = DrawPoint.InsertAsMiddle(DisplayBuffer, (int)Math.Floor(x + AdditionVector.x), (int)Math.Floor(y + AdditionVector.y), '#', Camera.CollidingObjects[i].Color);
+                        LastPos.x = x + localPos.x - 1;
+                        if (LastPos.x == ExMath.Round(x + localPos.x)) { AdditionVector.x++; }
+                        
+                        DisplayBuffer = DrawPoint.InsertAsMiddle(DisplayBuffer, (int)ExMath.Round(x + AdditionVector.x), (int)ExMath.Round(y + AdditionVector.y), '#', Camera.CollidingObjects[i].Color);
 
-                        LastPos.x = (int)Math.Floor(x + localPos.x);
+                        
                     }
-                    LastPos.y = (int)Math.Floor(y + localPos.y);
+                    
                 }
             }
             else if (Camera.CollidingObjects[i].TEXT_OBJ)
             {
                 localPos = Camera.LocalizePos(Camera.CollidingObjects[i]);
-                string[] TEXT = Camera.CollidingObjects[i].txt.Split("\r\n");
+                string[] TEXT = Camera.CollidingObjects[i].Text.Split("\r\n");
                 for (int y = 0; y < TEXT.Length; y++)
                 {
                     for (int x = 0; x < TEXT[y].Length; x++)
                     {
                         //Debug.WriteLine(TEXT[y] + " : " + y);
-                        DisplayBuffer = DrawPoint.InsertAsMiddle(DisplayBuffer, (int)Math.Floor(x + localPos.x), (int)Math.Floor(localPos.y - y), TEXT[y][x], Camera.CollidingObjects[i].Color);
+                        DisplayBuffer = DrawPoint.InsertAsMiddle(DisplayBuffer, (int)ExMath.Round(x + localPos.x), (int)ExMath.Round(localPos.y - y), TEXT[y][x], Camera.CollidingObjects[i].Color);
                     }
                 }
             }
         }
-        ConsoleDrawer.UpdateBuffer(DisplayBuffer);
+        Renderer.UpdateBuffer(DisplayBuffer);
     }
-
-
 
     public Object[] GetObjectByName(string Name)
     {
@@ -139,12 +193,10 @@ public class GameSystem
         }
         return Objects.ToArray();
     }
-
     public Object[] GetAllObjects()
     {
         return Objects.ToArray();
     }
-
     public Object GetObjectByID(string ID)
     {
         for (int i = 0; i < Objects.Count; i++)
@@ -157,17 +209,10 @@ public class GameSystem
         return null;
     }
 
-
-
     public void RemoveObject(Object obj)
     {
         Objects.Remove(obj);
-        ObjectCollision.Remove(obj);
     }
-
-
-
-
 }
 public class DrawPoint
 {
@@ -202,11 +247,11 @@ public class DrawPoint
     }
     public static DrawPoint[,] InsertAsMiddle(DrawPoint[,] array, int x, int y, char Char, Color Color)
     {
-        Vector2 A = new Vector2(x + array.GetLength(0) / 2, -y + array.GetLength(1) / 2);
+        Vector2 A = new Vector2(x + (array.GetLength(0) * .5f), -y + (array.GetLength(1) * .5f));
         if (A.x > -1 && A.x < array.GetLength(0) && A.y > -1 && A.y < array.GetLength(1))
         {
-            array[(int)MathF.Round(A.x), (int)MathF.Round(A.y)].DisplayChar = Char;
-            array[(int)MathF.Round(A.x), (int)MathF.Round(A.y)].DisplayColor = Color;
+            array[(int)A.x, (int)A.y].DisplayChar = Char;
+            array[(int)A.x, (int)A.y].DisplayColor = Color;
         }
         return array;
     }
@@ -230,16 +275,10 @@ public class Draw
     public static extern bool SetConsoleMode(IntPtr hConsoleHandle, int mode);
     [DllImport("kernel32.dll", SetLastError = true)]
     public static extern bool GetConsoleMode(IntPtr handle, out int mode);
-
     [DllImport("kernel32.dll", SetLastError = true)]
     public static extern IntPtr GetStdHandle(int handle);
 
     public bool ForceDraw;
-
-    /// <summary>
-    /// <para>Bottleneck frame rate True/False</para>
-    /// </summary>
-    public bool BTLNCKFR = false;
     /// <summary>
     /// <para>false = Draw screen Left To Right Top to Bottom</para>
     /// <para>true = Draw screen Top to Bottom Left To Right</para>
@@ -251,11 +290,8 @@ public class Draw
     /// <para>Only used if bottlenecking</para>
     /// <para>Target frames per sec</para>
     /// </summary>
-    public int BttlFrm = 5;
-
     public int AvgFramesPerSec;
     bool StopThreads;
-    bool UpdateScreen;
     DrawPoint[,] CurrDisplay;
     DrawPoint[,] Buffer;
     DrawPoint[,] SafeGaurdBuffer;
@@ -284,10 +320,27 @@ public class Draw
     /// Updates the display buffer
     /// </summary>
     /// <param name="Buffer">stuff to display on screen</param>
+    
+    int CurrFrames;
     public void UpdateBuffer(DrawPoint[,] Buffer)
     {
-        this.SafeGaurdBuffer = DrawPoint.CopyTo(Buffer, this.SafeGaurdBuffer);
-        UpdateScreen = true;
+        if(SafeGaurdBuffer != Buffer)
+        {
+            this.SafeGaurdBuffer = DrawPoint.CopyTo(Buffer, this.SafeGaurdBuffer);
+            DrawScreen();
+        }
+
+        CurrFrames++;
+    }
+
+    void FrameLoop()
+    {
+        while (!StopThreads)
+        {
+            Thread.Sleep(1000);
+            AvgFramesPerSec = CurrFrames;
+            CurrFrames = 0;
+        }
     }
 
     public void Start()
@@ -298,46 +351,16 @@ public class Draw
         SetConsoleMode(handle, mode | 0x4);
 
         StopThreads = false;
-        Thread BeginDraw = new Thread(new ThreadStart(DrawLoop));
+        Thread BeginFPSC = new Thread(new ThreadStart(FrameLoop));
         ForceDraw = true;
-        BeginDraw.Start();
-    }
-
-    DateTime BottleNeckTimer = DateTime.Now;
-    DateTime FrameTimer = DateTime.Now;
-    int Frames = 0;
-    void DrawLoop()
-    {
-        StopThreads = false;
-        while (!StopThreads)
-        {
-            if (SafeGaurdBuffer != CurrDisplay && UpdateScreen)
-            {
-                DrawScreen();
-                UpdateScreen = false;
-            }
-
-
-
-            switch (BTLNCKFR)
-            {
-                case true:
-                    if (DateTime.Now > BottleNeckTimer)
-                    {
-                        BottleNeckTimer = DateTime.Now.AddMilliseconds(1000 / BttlFrm);
-                        Thread.Sleep(1000 / BttlFrm);
-                    }
-                    break;
-            }
-        }
+        DrawScreen();
+        BeginFPSC.Start();
 
     }
-
     public void Stop()
     {
         StopThreads = true;
     }
-
     Color DisColor;
     void DrawScreen()
     {
@@ -370,72 +393,66 @@ public class Draw
                 break;
         }
 
-
-
-
-        void DrawToPoint(int x, int y)
-        {
-            Console.SetCursorPosition(x, y);
-            DisColor = Buffer[x, y].DisplayColor;
-            Console.Write($"\x1b[38;2;{DisColor.R};{DisColor.G};{DisColor.B}m{Buffer[x, y].DisplayChar}");
-        }
-
         Console.SetCursorPosition(0, 0);
         ForceDraw = false;
         CurrDisplay = DrawPoint.CopyTo(Buffer, CurrDisplay);
-        Frames++;
     }
 
+    void DrawToPoint(int x, int y)
+    {
+        Console.SetCursorPosition(x, y);
+        DisColor = Buffer[x, y].DisplayColor;
+        Console.Write($"\x1b[38;2;{DisColor.R};{DisColor.G};{DisColor.B}m{Buffer[x, y].DisplayChar}");
+    }
 }
 
 public class Object
 {
     public string ID;
     public string NAME;
+    public int LAYER;
     public bool Visible = true;
+    public bool Collision = true;
     public bool TEXT_OBJ;
-    public string txt = "";
+    public string Text = "";
     public Color Color = Color.White;
     Vector2 TopLeft;
     Vector2 BotRight;
     Vector2 Size;
     Vector2 Position;
-    Vector2 CentParPos;
+    public Vector2 CentParPos;
     public List<Object> CollidingObjects = new List<Object>();
     public List<Object> Children = new List<Object>();
     public Object Parent;
 
-    public Object(string NAME, Vector2 Size, Vector2 Position) { CREATEOBJECT(NAME, Size, Position, Color.White); }
-    public Object(string NAME, Vector2 Size, Vector2 Position, Color Color) { CREATEOBJECT(NAME, Size, Position, Color); }
+    public Object(string NAME, Vector2 Size, Vector2 Position) { CREATEOBJECT(NAME, Size, Position, Color.White, 0); }
+    public Object(string NAME, Vector2 Size, Vector2 Position, Color Color) { CREATEOBJECT(NAME, Size, Position, Color, 0); }
+    public Object(string NAME, Vector2 Size, Vector2 Position, int Layer) { CREATEOBJECT(NAME, Size, Position, Color.White, Layer); }
 
-    void CREATEOBJECT(string NAME, Vector2 Size, Vector2 Position, Color Color)
+    public Object(string NAME, Vector2 Size, Vector2 Position, int Layer, Color Color) { CREATEOBJECT(NAME, Size, Position, Color, Layer); }
+    void CREATEOBJECT(string NAME, Vector2 Size, Vector2 Position, Color Color, int Layer)
     {
         this.NAME = NAME;
         this.Size = Size;
         this.Position = Position;
         this.CentParPos = Position;
         this.Color = Color;
+        this.LAYER = Layer;
         CalcNewSizePos();
     }
 
 
-    public Vector2 LocalizePos(Object obj)
-    {
-        return obj.Position - Position;
-    }
-
+    public Vector2 LocalizePos(Object obj) { return obj.Position - Position; }
     void RecalcParentPos()
     {
         this.Position = CentParPos + Parent.GetPos();
         CalcNewSizePos();
     }
-
     public void Resize(Vector2 Size)
     {
         this.Size = Size;
         CalcNewSizePos();
     }
-
     void ReposChildren()
     {
         if (Children.Count > 0)
@@ -446,14 +463,10 @@ public class Object
             }
         }
     }
-
-    //NOTE: GO THRU AND OPTIMIZE THESE KIND OF THINGS FURTHER
     public void RePosition(Vector2 Position) { REPOS(Position.x, Position.y, false); }
     public void RePosition(float x, float y) { REPOS(x, y, false); }
     public void RePosition(float x, float y, bool doParent) { REPOS(x, y, doParent); }
     public void RePosition(Vector2 Position, bool doParent) { REPOS(Position.x, Position.y, doParent); }
-
-
     void REPOS(float x, float y, bool doParent)
     {
         switch (doParent)
@@ -471,29 +484,14 @@ public class Object
         ReposChildren();
         CalcNewSizePos();
     }
-
     public void AddObjectAsChild(Object Child)
     {
         this.Children.Add(Child);
         Child.Parent = this;
     }
-
-    public Vector2 GetPos()
-    {
-        return Position;
-    }
-
-    public Vector2 GetSize()
-    {
-        return Size;
-    }
-
-    public bool CheckIfColliding(Object Obj)
-    {
-        return Vector2.doOverlap(this.TopLeft, this.BotRight, Obj.TopLeft, Obj.BotRight);
-        
-    }
-
+    public Vector2 GetPos() { return Position; }
+    public Vector2 GetSize() { return Size; }
+    public bool CheckIfColliding(Object Obj) { return Vector2.doOverlap(this.TopLeft, this.BotRight, Obj.TopLeft, Obj.BotRight); }
     void CalcNewSizePos()
     {
         TopLeft = new Vector2(-Size.x / 2, Size.y / 2) + Position;
