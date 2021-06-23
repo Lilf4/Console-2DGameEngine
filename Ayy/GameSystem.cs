@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.InteropServices;
@@ -12,7 +13,7 @@ public class GameSystem
     DrawPoint[,] DisplayBuffer;
     public Draw Renderer;
 
-    Random Ran = new Random();
+    public Random Ran = new Random();
     List<Object> Objects = new List<Object>();
     public Object Camera;
 
@@ -33,39 +34,56 @@ public class GameSystem
         SETUP(ScreenWidth, ScreenHeight, GameName, LTRTTB_TTBLTR);
     }
 
-    //TODO - FIX THIS CODE LATER
+    //Quick fix - should prb look into changing this later
+    Dictionary<int, List<Object>> QuickSortDic = new Dictionary<int, List<Object>>();
     public void ChangeLayer(Object obj, int layer)
     {
         if(Objects.Count > 0)
         {
+            List<int> Indexes = new List<int>();
+
             Objects.Remove(obj);
-            int LastObjLayer = -999999999;
-            //Debug.WriteLine(Objects.Count);
-            int count = Objects.Count;
-            for (int i = 0; i < count; i++)
+            obj.LAYER = layer;
+            QuickSortDic.Clear();
+            List<Object> ObjectsList;
+            for(int i = 0; i < Objects.Count; i++)
             {
-                if(layer >= LastObjLayer && layer <= Objects[i].LAYER)
+                QuickSortDic.TryGetValue(Objects[i].LAYER, out ObjectsList);
+                if(ObjectsList == null)
                 {
-                    Debug.WriteLine(Objects[i].LAYER + " : " + layer + " : " + LastObjLayer);
-                    Objects.Insert(i + 1, obj);
-                    return;
+                    QuickSortDic.Add(Objects[i].LAYER, new List<Object>());
+                    QuickSortDic.TryGetValue(Objects[i].LAYER, out ObjectsList);
+                    Indexes.Add(Objects[i].LAYER);
                 }
-                else if(layer < LastObjLayer)
-                {
-                    Objects.Insert(i - 1, obj);
-                    return;
-                }
-                LastObjLayer = Objects[i].LAYER;
-                
+                ObjectsList.Add(Objects[i]);
             }
+            QuickSortDic.TryGetValue(obj.LAYER, out ObjectsList);
+            if (ObjectsList == null)
+            {
+                QuickSortDic.Add(obj.LAYER, new List<Object>());
+                QuickSortDic.TryGetValue(obj.LAYER, out ObjectsList);
+                Indexes.Add(obj.LAYER);
+            }
+            ObjectsList.Add(obj);
+            Indexes.Sort();
+            Objects.Clear();
+            foreach(int index in Indexes)
+            {
+                QuickSortDic.TryGetValue(index, out ObjectsList);
+                foreach(Object _obj in ObjectsList)
+                {
+                    Objects.Add(_obj);
+                }
+            }
+            QuickSortDic.Clear();
         }
         else
         {
             Objects.Add(obj);
         }
-        
     }
 
+    
 
     void SETUP(int ScreenWidth, int ScreenHeight, string GameName, bool LTRTTB_TTBLTR)
     {
@@ -141,39 +159,42 @@ public class GameSystem
         DisplayBuffer = DrawPoint.Const(BackgroundChar, Background, DisplayBuffer);
         for (int i = 0; i < Camera.CollidingObjects.Count; i++)
         {
-            if (Camera.CollidingObjects[i].Visible && Camera.CollidingObjects[i].NAME != Camera.NAME && !Camera.CollidingObjects[i].TEXT_OBJ)
+            if (Camera.CollidingObjects[i].Visible)
             {
-                LastPos = Camera.CollidingObjects[i].GetPos() - 1;
-                localPos = Camera.LocalizePos(Camera.CollidingObjects[i]);
-                localPos -= Camera.CollidingObjects[i].GetSize() / 2;
-                for (int y = 0; y < Camera.CollidingObjects[i].GetSize().y; y++)
+                if (Camera.CollidingObjects[i].NAME != Camera.NAME && !Camera.CollidingObjects[i].TEXT_OBJ)
                 {
-                    
-                    AdditionVector = Vector2.Copy(localPos);
-                    LastPos.y = y + localPos.y - 1;
-                    if (LastPos.y == ExMath.Round(y + localPos.y)) { AdditionVector.y++; }
-                    for (int x = 0; x < Camera.CollidingObjects[i].GetSize().x; x++)
+                    LastPos = Camera.CollidingObjects[i].GetPos() - 1;
+                    localPos = Camera.LocalizePos(Camera.CollidingObjects[i]);
+                    localPos -= Camera.CollidingObjects[i].GetSize() / 2;
+                    for (int y = 0; y < Camera.CollidingObjects[i].GetSize().y; y++)
                     {
-                        LastPos.x = x + localPos.x - 1;
-                        if (LastPos.x == ExMath.Round(x + localPos.x)) { AdditionVector.x++; }
-                        
-                        DisplayBuffer = DrawPoint.InsertAsMiddle(DisplayBuffer, (int)ExMath.Round(x + AdditionVector.x), (int)ExMath.Round(y + AdditionVector.y), '#', Camera.CollidingObjects[i].Color);
 
-                        
+                        AdditionVector = Vector2.Copy(localPos);
+                        LastPos.y = y + localPos.y - 1;
+                        if (LastPos.y == ExMath.Round(y + localPos.y)) { AdditionVector.y++; }
+                        for (int x = 0; x < Camera.CollidingObjects[i].GetSize().x; x++)
+                        {
+                            LastPos.x = x + localPos.x - 1;
+                            if (LastPos.x == ExMath.Round(x + localPos.x)) { AdditionVector.x++; }
+
+                            DisplayBuffer = DrawPoint.InsertAsMiddle(DisplayBuffer, (int)ExMath.Round(x + AdditionVector.x), (int)ExMath.Round(y + AdditionVector.y), '#', Camera.CollidingObjects[i].Color);
+
+
+                        }
+
                     }
-                    
                 }
-            }
-            else if (Camera.CollidingObjects[i].TEXT_OBJ)
-            {
-                localPos = Camera.LocalizePos(Camera.CollidingObjects[i]);
-                string[] TEXT = Camera.CollidingObjects[i].Text.Split("\r\n");
-                for (int y = 0; y < TEXT.Length; y++)
+                else if (Camera.CollidingObjects[i].TEXT_OBJ)
                 {
-                    for (int x = 0; x < TEXT[y].Length; x++)
+                    localPos = Camera.LocalizePos(Camera.CollidingObjects[i]);
+                    string[] TEXT = Camera.CollidingObjects[i].Text.Split("\r\n");
+                    for (int y = 0; y < TEXT.Length; y++)
                     {
-                        //Debug.WriteLine(TEXT[y] + " : " + y);
-                        DisplayBuffer = DrawPoint.InsertAsMiddle(DisplayBuffer, (int)ExMath.Round(x + localPos.x), (int)ExMath.Round(localPos.y - y), TEXT[y][x], Camera.CollidingObjects[i].Color);
+                        for (int x = 0; x < TEXT[y].Length; x++)
+                        {
+                            //Debug.WriteLine(TEXT[y] + " : " + y);
+                            DisplayBuffer = DrawPoint.InsertAsMiddle(DisplayBuffer, (int)ExMath.Round(x + localPos.x), (int)ExMath.Round(localPos.y - y), TEXT[y][x], Camera.CollidingObjects[i].Color);
+                        }
                     }
                 }
             }
@@ -496,5 +517,85 @@ public class Object
     {
         TopLeft = new Vector2(-Size.x / 2, Size.y / 2) + Position;
         BotRight = new Vector2(Size.x / 2, -Size.y / 2) + Position;
+    }
+}
+/// <summary>
+/// legit just straight yoinked this part from u/flying20wedge
+/// </summary>
+public static class Keyboard
+{
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static extern bool GetKeyboardState(byte[] lpKeyState);
+
+    public static int GetKeyState()
+    {
+
+
+        byte[] keys = new byte[256];
+
+        //Get pressed keys
+        if (!GetKeyboardState(keys))
+        {
+            int err = Marshal.GetLastWin32Error();
+            throw new Win32Exception(err);
+        }
+
+        for (int i = 0; i < 256; i++)
+        {
+
+            byte key = keys[i];
+
+            //Logical 'and' so we can drop the low-order bit for toggled keys, else that key will appear with the value 1!
+            if ((key & 0x80) != 0)
+            {
+
+                //This is just for a short demo, you may want this to return
+                //multiple keys!
+                return (int)key;
+            }
+        }
+        return -1;
+    }
+
+    [DllImport("user32.dll")]
+    static extern short GetKeyState(ConsoleKey nVirtKey);
+
+    public static bool IsKeyPressed(ConsoleKey testKey)
+    {
+        bool keyPressed = false;
+        short result = GetKeyState(testKey);
+
+        switch (result)
+        {
+            case 0:
+                // Not pressed and not toggled on.
+                keyPressed = false;
+                break;
+
+            case 1:
+                // Not pressed, but toggled on
+                keyPressed = false;
+                break;
+
+            default:
+                // Pressed (and may be toggled on)
+                keyPressed = true;
+                break;
+        }
+
+        return keyPressed;
+    }
+
+
+
+    private const uint MAPVK_VK_TO_CHAR = 2;
+
+    [DllImport("user32.dll")]
+    static extern uint MapVirtualKeyW(uint uCode, uint uMapType);
+
+    public static char KeyToChar(ConsoleKey key)
+    {
+        return unchecked((char)MapVirtualKeyW((uint)key, MAPVK_VK_TO_CHAR)); // Ignore high word.  
     }
 }
