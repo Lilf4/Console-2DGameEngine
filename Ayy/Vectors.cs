@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 
 public class Vector2
 {
@@ -103,6 +102,21 @@ public class Vector2
     public static bool operator ==(Vector2 a, float b) { return a.x == b && a.y == b; }
     public static bool operator !=(Vector2 a, float b) { return a.x != b || a.y != b; }
     #endregion
+}
+
+public class Vector3
+{
+    public float x = 0;
+    public float y = 0;
+    public float z = 0;
+    public Vector3(float x, float y, float z)
+    {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
+    public static readonly Vector3 Zero = new Vector3(0, 0, 0);
 }
 
 public class ExMath

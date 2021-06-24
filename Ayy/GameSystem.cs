@@ -83,8 +83,6 @@ public class GameSystem
         }
     }
 
-    
-
     void SETUP(int ScreenWidth, int ScreenHeight, string GameName, bool LTRTTB_TTBLTR)
     {
         Camera = new Object("CAMERA", new Vector2(ScreenWidth, ScreenHeight), new Vector2(0, 0));
@@ -96,14 +94,12 @@ public class GameSystem
         AddObject(Camera);
     }
 
-
     public void AddObject(Object obj)
     {
         while (!isValidID(Ran.Next(9999999).ToString())) { }
 
         ChangeLayer(obj, obj.LAYER);
         
-
         bool isValidID(string ID)
         {
             for (int i = 0; i < Objects.Count; i++)
@@ -165,23 +161,24 @@ public class GameSystem
                 {
                     LastPos = Camera.CollidingObjects[i].GetPos() - 1;
                     localPos = Camera.LocalizePos(Camera.CollidingObjects[i]);
-                    localPos -= Camera.CollidingObjects[i].GetSize() / 2;
+                    if(Camera.CollidingObjects[i].GetSize() > 1)
+                    {
+                        localPos -= Camera.CollidingObjects[i].GetSize() / 2;
+                    }
                     for (int y = 0; y < Camera.CollidingObjects[i].GetSize().y; y++)
                     {
 
                         AdditionVector = Vector2.Copy(localPos);
                         LastPos.y = y + localPos.y - 1;
-                        if (LastPos.y == ExMath.Round(y + localPos.y)) { AdditionVector.y++; }
+                        if (LastPos.y == ExMath.Round(y + localPos.y)) { AdditionVector.y++;  }
                         for (int x = 0; x < Camera.CollidingObjects[i].GetSize().x; x++)
                         {
                             LastPos.x = x + localPos.x - 1;
                             if (LastPos.x == ExMath.Round(x + localPos.x)) { AdditionVector.x++; }
-
                             DisplayBuffer = DrawPoint.InsertAsMiddle(DisplayBuffer, (int)ExMath.Round(x + AdditionVector.x), (int)ExMath.Round(y + AdditionVector.y), '#', Camera.CollidingObjects[i].Color);
 
 
                         }
-
                     }
                 }
                 else if (Camera.CollidingObjects[i].TEXT_OBJ)
@@ -192,7 +189,6 @@ public class GameSystem
                     {
                         for (int x = 0; x < TEXT[y].Length; x++)
                         {
-                            //Debug.WriteLine(TEXT[y] + " : " + y);
                             DisplayBuffer = DrawPoint.InsertAsMiddle(DisplayBuffer, (int)ExMath.Round(x + localPos.x), (int)ExMath.Round(localPos.y - y), TEXT[y][x], Camera.CollidingObjects[i].Color);
                         }
                     }
@@ -269,7 +265,7 @@ public class DrawPoint
     public static DrawPoint[,] InsertAsMiddle(DrawPoint[,] array, int x, int y, char Char, Color Color)
     {
         Vector2 A = new Vector2(x + (array.GetLength(0) * .5f), -y + (array.GetLength(1) * .5f));
-        if (A.x > -1 && A.x < array.GetLength(0) && A.y > -1 && A.y < array.GetLength(1))
+        if (A > -1 && A.x < array.GetLength(0) && A.y < array.GetLength(1))
         {
             array[(int)A.x, (int)A.y].DisplayChar = Char;
             array[(int)A.x, (int)A.y].DisplayColor = Color;
@@ -307,10 +303,6 @@ public class Draw
     public bool LTRTTB_TTBLTR;
     int Width;
     int Height;
-    /// <summary>
-    /// <para>Only used if bottlenecking</para>
-    /// <para>Target frames per sec</para>
-    /// </summary>
     public int AvgFramesPerSec;
     bool StopThreads;
     DrawPoint[,] CurrDisplay;
@@ -367,8 +359,7 @@ public class Draw
     public void Start()
     {
         var handle = GetStdHandle(-11);
-        int mode;
-        GetConsoleMode(handle, out mode);
+        GetConsoleMode(handle, out int mode);
         SetConsoleMode(handle, mode | 0x4);
 
         StopThreads = false;
@@ -382,7 +373,6 @@ public class Draw
     {
         StopThreads = true;
     }
-    Color DisColor;
     void DrawScreen()
     {
         Buffer = DrawPoint.CopyTo(SafeGaurdBuffer, Buffer);
@@ -421,6 +411,7 @@ public class Draw
 
     void DrawToPoint(int x, int y)
     {
+        Color DisColor;
         Console.SetCursorPosition(x, y);
         DisColor = Buffer[x, y].DisplayColor;
         Console.Write($"\x1b[38;2;{DisColor.R};{DisColor.G};{DisColor.B}m{Buffer[x, y].DisplayChar}");
@@ -449,7 +440,6 @@ public class Object
     public Object(string NAME, Vector2 Size, Vector2 Position) { CREATEOBJECT(NAME, Size, Position, Color.White, 0); }
     public Object(string NAME, Vector2 Size, Vector2 Position, Color Color) { CREATEOBJECT(NAME, Size, Position, Color, 0); }
     public Object(string NAME, Vector2 Size, Vector2 Position, int Layer) { CREATEOBJECT(NAME, Size, Position, Color.White, Layer); }
-
     public Object(string NAME, Vector2 Size, Vector2 Position, int Layer, Color Color) { CREATEOBJECT(NAME, Size, Position, Color, Layer); }
     void CREATEOBJECT(string NAME, Vector2 Size, Vector2 Position, Color Color, int Layer)
     {
